@@ -86,7 +86,7 @@ def create_html(dest_dir):
     # create html file with images from dest_dir
     html = "<html><body>"
     for file in sorted(os.listdir(dest_dir), key=sort_key):
-        if str(file).endswith(".jpg"):
+        if re.search(r"^img\d+\.jpg$", file):
             html += f'<img src="{file}">'
     html += "</body></html>"
     return html
