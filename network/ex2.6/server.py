@@ -9,7 +9,7 @@ import protocol
 
 def create_server_rsp(cmd):
     """Based on the command, create a proper response"""
-    return protocol.commands[cmd]()
+    return protocol.commands[cmd.upper()]()
 
 
 def main():

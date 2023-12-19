@@ -26,7 +26,7 @@ def main():
 
             msg = protocol.create_msg(user_input)
             my_socket.send(msg)
-            if user_input == "EXIT":
+            if user_input.upper() == "EXIT":
                 break
             valid, response = protocol.get_msg(my_socket)
 
@@ -40,6 +40,7 @@ def main():
 
     print("Closing\n")
     # Close socket
+    my_socket.close()
 
 
 if __name__ == "__main__":
