@@ -16,10 +16,12 @@ SOCKET_TIMEOUT = 0.1
 FIXED_RESPONSE = "ERROR 404: Page not found"
 DEFAULT_URL = "/index.html"
 REDIRECTION_DICTIONARY = {}
+WEBROOT_PATH = "./"
 
 HTTP_STATUS_OK = "HTTP/1.1 200 OK\r\n"
 HTTP_STATUS_NOT_FOUND = "HTTP/1.1 404 Not Found\r\n"
 HTTP_STATUS_REDIRECT = "HTTP/1.1 302 Found\r\n"
+HTTP_STATUS_INTERNAL_SERVER_ERROR = "HTTP/1.1 500 Internal Server Error\r\n"
 
 HTTP_HTML_HEADER = "Content-Type: text/html; charset=utf-8\r\n"
 HTTP_JPG_HEADER = "Content-Type: image/jpg\r\n"
@@ -28,27 +30,50 @@ HTTP_CSS_HEADER = "Content-Type: text/css; charset=utf-8\r\n"
 HTTP_PLAIN_HEADER = "Content-Type: text/plain; charset=utf-8\r\n"
 
 
-def GET_calculate_next(params: dict[str, str]) -> str:
+def GET_calculate_next(params: dict[str, str]) -> bytes:
     if "num" in params and params["num"].isnumeric():
-        return str(int(params["num"]) + 1)
-    return "Error check params"
+        return str(int(params["num"]) + 1).encode()
+    return b"Error check params"
 
 
-def GET_calculate_area(params: dict[str, str]) -> str:
+def GET_calculate_area(params: dict[str, str]) -> bytes:
     if (
         "width" in params
         and "height" in params
         and params["width"].isnumeric()
         and params["height"].isnumeric()
     ):
-        return str(int(params["width"]) * int(params["height"]) / 2)
-    return "Error check params"
+        return str(int(params["width"]) * int(params["height"]) / 2).encode()
+    return b"Error check params"
 
+def GET_image(params: dict[str, str]) -> bytes:
+    if "image-name" in params:
+        with open(f"{WEBROOT_PATH}uploads/{params["image-name"]}", "rb") as f:
+            return f.read()
+    return b"Error check params"
 
 GET_METHODS = {
     "/calculate-next": GET_calculate_next,
     "/calculate-area": GET_calculate_area,
+    "/image": GET_image,
 }
+
+
+def POST_upload(params: dict[str, str], data: bytes, client_socket) -> bool:
+    try:
+        with open(f"{WEBROOT_PATH}uploads/{params["file-name"]}", "wb") as f:
+            while data:
+                f.write(data)
+                try:
+                    data = client_socket.recv(1024)
+                except socket.timeout:
+                    break
+        return True
+    except:
+        return False
+
+
+POST_METHODS = {"/upload": POST_upload}
 
 
 def get_file_data(filename) -> bytes:
@@ -69,11 +94,13 @@ def handle_client_request(resource: str, client_socket: socket.socket):
 
     if url in GET_METHODS:
         params = dict([param.split("=") for param in params.split("&")])
-        data = GET_METHODS[url](params).encode()
+        data = GET_METHODS[url](params)
+        if "image-name" in params:
+            url = f"/uploads/{params["image-name"]}"
         filelen = len(data)
     else:
-        if os.path.isfile(f"./{url}"):
-            data = get_file_data(f"./{url}")
+        if os.path.isfile(f"{WEBROOT_PATH}{url}"):
+            data = get_file_data(f"{WEBROOT_PATH}{url}")
             filelen = len(data)
         else:
             status_code = HTTP_STATUS_NOT_FOUND
@@ -102,14 +129,37 @@ def handle_client_request(resource: str, client_socket: socket.socket):
     client_socket.send(http_response)
 
 
-def validate_http_request(request) -> tuple[bool, str]:
+def handle_post(client_socket: socket.socket, resource: str, data: bytes):
+    status_code = HTTP_STATUS_OK
+    url = resource if resource != "/" else DEFAULT_URL
+
+    url, params = url.split("?") if "?" in url else (url, "")
+
+    if url in POST_METHODS:
+        params = dict([param.split("=") for param in params.split("&")])
+        isSuccess = POST_METHODS[url](params, data, client_socket)
+        if not isSuccess:
+            status_code = HTTP_STATUS_INTERNAL_SERVER_ERROR
+    else:
+        status_code = HTTP_STATUS_NOT_FOUND
+
+    http_header = f"{status_code}Content-Length: 0\r\n\r\n".encode()
+    client_socket.send(http_header)
+
+
+def validate_http_request(request: bytes) -> tuple[bool, str, str]:
     """
     Check if request is a valid HTTP request and returns TRUE / FALSE and the requested URL
     """
     # TO DO: write function
-    httpreg = re.compile(r"^GET\s(.*)\sHTTP/1.1")
-    m = httpreg.match(request)
-    return (True, m.group(1)) if m else (False, "")
+    httpreg = re.compile(r"^(.*)\s(.*)\sHTTP/1.1")
+    request = request.split(b"\r\n")[0]
+    m = httpreg.match(request.decode())
+    return (
+        (m.group(1) in {"GET", "POST"}, m.group(2), m.group(1))
+        if m
+        else (False, "", "")
+    )
 
 
 def handle_client(client_socket: socket.socket):
@@ -118,11 +168,17 @@ def handle_client(client_socket: socket.socket):
 
     while True:
         try:
-            client_request = client_socket.recv(1024).decode()
-            valid_http, resource = validate_http_request(client_request)
+            client_request = client_socket.recv(1024)
+            valid_http, resource, method = validate_http_request(client_request)
+            if not client_request:
+                break
+            data = client_request.split(b"\r\n\r\n")[1]
             if valid_http:
                 print("Got a valid HTTP request")
-                handle_client_request(resource, client_socket)
+                if method == "GET":
+                    handle_client_request(resource, client_socket)
+                elif method == "POST":
+                    handle_post(client_socket, resource, data)
                 break
             else:
                 print("Error: Not a valid HTTP request")
