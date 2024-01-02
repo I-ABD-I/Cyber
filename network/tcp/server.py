@@ -1,11 +1,38 @@
-from socket import AF_INET, SOCK_STREAM, socket
+import socket
+import protocol
+
+protocol.init()
+
+server = protocol.Server()
 
 
-with socket(AF_INET, SOCK_STREAM) as s:
-    s.bind(("0.0.0.0", 8820))
-    s.listen(1)
-    conn, addr = s.accept()
-    with conn:
-        data = conn.recv(1024)
-        print(data)
-        conn.send(f"Hello, {data}".encode())
+def main():
+    with server:
+        while True:
+            conn, addr = server.sock.accept()
+            print("Client Conncted", addr)
+            with conn:
+                while True:
+                    try:
+                        data = conn.recv(1024)
+                    except socket.error:
+                        break
+
+                    if not data:
+                        break
+
+                    data = server.get_msg(data.decode())
+                    method, args = server.decode_msg(data.lower())
+
+                    if method == "exit":
+                        break
+
+                    if not server.validate_request(method, args):
+                        server.send_msg("Invalid Request", conn)
+                        continue
+
+                    server.send_msg(server.methods[method](args), conn)
+
+
+if __name__ == "__main__":
+    main()

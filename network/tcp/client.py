@@ -1,8 +1,23 @@
-from socket import AF_INET, SOCK_STREAM, socket
+from protocol import Client
+
+client = Client()
+
+client.add_methods({})
 
 
-with socket(AF_INET, SOCK_STREAM) as s:
-    s.connect(("172.16.13.122", 8820))
-    s.send(b"Name")
-    data = s.recv(1024)
-    print(data.decode())
+def main():
+    with client:
+        while True:
+            data = input("Enter Command: ")
+
+            if data.split()[0].lower() == "exit":
+                break
+
+            if client.validate_input(data):
+                print(client.send_msg(data))
+            else:
+                print("Invalid Input")
+
+
+if __name__ == "__main__":
+    main()
