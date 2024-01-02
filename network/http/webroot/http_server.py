@@ -16,6 +16,7 @@ SOCKET_TIMEOUT = 0.1
 FIXED_RESPONSE = "ERROR 404: Page not found"
 DEFAULT_URL = "/index.html"
 REDIRECTION_DICTIONARY = {}
+
 WEBROOT_PATH = "./"
 
 HTTP_STATUS_OK = "HTTP/1.1 200 OK\r\n"
@@ -107,8 +108,11 @@ def handle_client_request(resource: str, client_socket: socket.socket):
             data = b""
             filelen = 0
 
+
+    location_header = ""
     if url in REDIRECTION_DICTIONARY:
         status_code = HTTP_STATUS_REDIRECT
+        location_header = f"Location: {REDIRECTION_DICTIONARY[url]}\r\n"
 
     filetypereg = re.compile(r"/(.*)\.(.*)")
     m = filetypereg.match(url)
@@ -123,7 +127,7 @@ def handle_client_request(resource: str, client_socket: socket.socket):
     }
     header = header_map.get(filetype, HTTP_PLAIN_HEADER)
 
-    http_header = f"{status_code}{header}Content-Length: {filelen}\r\n\r\n".encode()
+    http_header = f"{status_code}{header}{location_header}Content-Length: {filelen}\r\n\r\n".encode()
 
     http_response = http_header + data
     client_socket.send(http_response)
