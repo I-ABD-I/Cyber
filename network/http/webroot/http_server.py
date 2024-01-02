@@ -15,7 +15,11 @@ PORT = 80
 SOCKET_TIMEOUT = 0.1
 FIXED_RESPONSE = "ERROR 404: Page not found"
 DEFAULT_URL = "/index.html"
-REDIRECTION_DICTIONARY = {}
+REDIRECTION_DICTIONARY = {
+    "/a": "/imgs/abstract.jpg",
+    "load": "/imgs/loading.gif",
+    "/doremon": "./css/doremon.css"
+}
 
 WEBROOT_PATH = "./"
 
