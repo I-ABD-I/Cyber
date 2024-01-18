@@ -9,7 +9,7 @@ import protocol
 
 
 IP = "127.0.0.1"
-SAVED_PHOTO_LOCATION = "C:/python/School/cyber/class/network/ex2.7/cache/client/screenshot.jpg"  # The path + filename where the copy of the screenshot at the client should be saved
+SAVED_PHOTO_LOCATION = "C:/School/cyber/class/network/ex2.7/cache/client/screenshot.jpg"  # The path + filename where the copy of the screenshot at the client should be saved
 
 
 def handle_server_response(my_socket: socket.socket, cmd):

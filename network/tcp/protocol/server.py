@@ -1,5 +1,5 @@
 import socket
-from typing import Callable, Protocol
+from typing import Callable
 
 from . import shared
 
@@ -27,22 +27,22 @@ class Server:
     def add_method(self, method: str, param_count: int = 0, fixed: bool = True):
         method = method.lower()
 
-        def decotator(func: Callable[[list], str]):
+        def decorator(func: Callable[[list], str]):
             self.methods[method] = func
             self.methods[method].param_count = param_count
             self.methods[method].fixed = fixed
             return func
 
-        return decotator
+        return decorator
 
     def add_validator(self, method: str):
         method = method.lower()
 
-        def decotator(func: Callable[[list], bool]):
+        def decorator(func: Callable[[list], bool]):
             self.validators[method] = func
             return func
 
-        return decotator
+        return decorator
 
     def decode_msg(self, msg: str) -> tuple[str, list[str]]:
         method, *args = msg.strip().split(" ")
@@ -71,3 +71,6 @@ class Server:
 
     def __exit__(self, *args):
         self.sock.__exit__(args)
+
+    def __call__(self, method, args):
+        return self.methods[method](args)

@@ -13,4 +13,4 @@ def create_msg(msg: str) -> str:
 
 
 def get_msg(msg: str) -> str:
-    return msg[LENGTH_FIELD_SIZE : int(msg[:LENGTH_FIELD_SIZE]) + LENGTH_FIELD_SIZE]
+    return msg[LENGTH_FIELD_SIZE: int(msg[:LENGTH_FIELD_SIZE]) + LENGTH_FIELD_SIZE]

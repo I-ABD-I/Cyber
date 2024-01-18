@@ -2,8 +2,6 @@ from protocol import Client
 
 client = Client()
 
-client.add_methods({})
-
 
 def main():
     with client:

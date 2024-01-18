@@ -12,7 +12,7 @@ import pyautogui
 
 
 IP = "0.0.0.0"
-PHOTO_PATH = "C:/python/School/cyber/class/network/ex2.7/cache/server/screenshot.jpg"  # The path + filename where the screenshot at the server should be saved
+PHOTO_PATH = "C:/School/cyber/class/network/ex2.7/cache/server/screenshot.jpg"  # The path + filename where the screenshot at the server should be saved
 
 
 def cmd_DIR(params):
@@ -130,48 +130,49 @@ def main():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((IP, protocol.PORT))
     server_socket.listen(1)
-    # (1)
-    client_socket, addr = server_socket.accept()
-    # handle requests until user asks to exit
     while True:
-        # Check if protocol is OK, e.g. length field OK
-        valid_protocol, cmd = protocol.get_msg(client_socket)
-        if valid_protocol:
-            # Check if params are good, e.g. correct number of params, file name exists
-            valid_cmd, command, params = check_client_request(cmd)
-            if valid_cmd:
-                response = handle_client_request(command, params)
-                # prepare a response using "handle_client_request"
+        # (1)
+        client_socket, addr = server_socket.accept()
+        # handle requests until user asks to exit
+        while True:
+            # Check if protocol is OK, e.g. length field OK
+            valid_protocol, cmd = protocol.get_msg(client_socket)
+            if valid_protocol:
+                # Check if params are good, e.g. correct number of params, file name exists
+                valid_cmd, command, params = check_client_request(cmd)
+                if valid_cmd:
+                    response = handle_client_request(command, params)
+                    # prepare a response using "handle_client_request"
 
-                # add length field using "create_msg"
-                response = protocol.create_msg(response)
-                # send to client
-                client_socket.send(response.encode())
-                if command == "SEND_PHOTO":
-                    # Send the data itself to the client
-                    with open(PHOTO_PATH, "rb") as f:
-                        while readbytes := f.read(1024):
-                            client_socket.send(readbytes)
+                    # add length field using "create_msg"
+                    response = protocol.create_msg(response)
+                    # send to client
+                    client_socket.send(response.encode())
+                    if command == "SEND_PHOTO":
+                        # Send the data itself to the client
+                        with open(PHOTO_PATH, "rb") as f:
+                            while readbytes := f.read(1024):
+                                client_socket.send(readbytes)
 
-                if command == "EXIT":
-                    break
+                    if command == "EXIT":
+                        break
+                else:
+                    # prepare proper error to client
+                    response = "Bad command or parameters"
+                    # send to client
+                    client_socket.send(response.encode())
+
             else:
                 # prepare proper error to client
-                response = "Bad command or parameters"
+                response = "Packet not according to protocol"
                 # send to client
                 client_socket.send(response.encode())
+                # Attempt to clean garbage from socket
+                client_socket.recv(1024)
 
-        else:
-            # prepare proper error to client
-            response = "Packet not according to protocol"
-            # send to client
-            client_socket.send(response.encode())
-            # Attempt to clean garbage from socket
-            client_socket.recv(1024)
-
-    # close sockets
-    print("Closing connection")
-    client_socket.close()
+        # close sockets
+        print("Closing connection")
+        client_socket.close()
     server_socket.close()
 
 
