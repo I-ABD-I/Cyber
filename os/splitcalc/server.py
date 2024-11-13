@@ -3,6 +3,7 @@ import io
 import queue
 import socket
 import threading
+import time
 from typing import Iterator
 
 import protodef
@@ -19,7 +20,7 @@ class Server:
     def run(self):
         self.sock.listen()
 
-        it = iter(range(3689000000, 10**11, BLOCKSIZE))
+        it = iter(range(0, 10**11, BLOCKSIZE))
         self.sock.setblocking(False)
         threads: list[ClientHandler] = []
         while True:
@@ -90,6 +91,9 @@ class ClientHandler(threading.Thread):
                 msg = self.inq.get()
                 protodef.send_packet(self.sock, msg)
                 if isinstance(msg, protodef.Quit):
+                    time.sleep(
+                        5
+                    )  # TODO ask michael abt shutdown (server is closing b4 client reads close pkt)
                     return
 
             pkt = self.recv()
