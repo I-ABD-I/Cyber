@@ -2,7 +2,6 @@ import abc
 import socket
 import struct
 from abc import abstractmethod
-from dataclasses import dataclass
 from typing import ClassVar, Type, TypeVar
 
 
@@ -14,10 +13,9 @@ class Packet(abc.ABC):
     def pack(self):
         raise NotImplemented
 
-    @staticmethod
-    @abstractmethod
-    def unpack(data):
-        raise NotImplemented
+    @classmethod
+    def unpack(cls, data):
+        return cls(*cls.struct.unpack(data))
 
 
 client_ids = {}
@@ -69,10 +67,6 @@ class Request(Packet):
     def pack(self):
         return Request.struct.pack(self.cores)
 
-    @staticmethod
-    def unpack(data):
-        return Request(*Request.struct.unpack(data))
-
 
 @clientbound("!qq")
 class Range(Packet):
@@ -83,10 +77,6 @@ class Range(Packet):
     def pack(self):
         return Range.struct.pack(self.start, self.end)
 
-    @staticmethod
-    def unpack(data):
-        return Range(*Range.struct.unpack(data))
-
 
 @clientbound("!32s")
 class Target(Packet):
@@ -96,10 +86,10 @@ class Target(Packet):
     def pack(self):
         return Target.struct.pack(self.target.encode())
 
-    @staticmethod
-    def unpack(data):
-        bts, *_ = Target.struct.unpack(data)
-        return Target(bts.decode())  # type: ignore
+    @classmethod
+    def unpack(cls, data):
+        bts, *_ = cls.struct.unpack(data)
+        return cls(bts.decode())  # type: ignore
 
 
 @serverbound("!10s")
@@ -110,10 +100,10 @@ class Found(Packet):
     def pack(self):
         return Found.struct.pack(self.hash.encode())
 
-    @staticmethod
-    def unpack(data):
-        hs, *_ = Found.struct.unpack(data)
-        return Found(hs.decode())
+    @classmethod
+    def unpack(cls, data):
+        hs, *_ = cls.struct.unpack(data)
+        return cls(hs.decode())
 
 
 @clientbound("!")
@@ -122,7 +112,3 @@ class Quit(Packet):
 
     def pack(self):
         return Quit.struct.pack()
-
-    @staticmethod
-    def unpack(data):
-        return Quit(*Quit.struct.unpack(data))

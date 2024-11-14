@@ -1,5 +1,4 @@
 import hashlib
-import io
 import queue
 import socket
 import threading
